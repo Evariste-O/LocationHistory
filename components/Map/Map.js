@@ -7,6 +7,7 @@ import IndexedDB from '../IndexDB/IndexDB'
 import { DatePicker,  LocalizationProvider, DateRangePicker } from '@mui/x-date-pickers'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import de from 'date-fns/locale/de';
+import { calculateZoomAndCenter } from '@/app/utils/mapUtils'
 
 
 function Map({}){
@@ -27,6 +28,7 @@ function Map({}){
     function ChangeView({ center, zoom }) {
         const map = useMap();
         map.setView(center, zoom);
+        //map.fi
         return null;
     }
 
@@ -36,6 +38,7 @@ function Map({}){
             setFetchedLocations(locations);
             setZoom(14)
             setCenter([locations[0].latitude/10000000, locations[0].longitude/10000000])
+            calculateZoomAndCenter(locations)
             console.log("locations fetched")
         })
     }
