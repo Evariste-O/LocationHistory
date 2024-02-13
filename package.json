@@ -1,0 +1,29 @@
+{
+  "name": "visualisation",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@emotion/react": "^11.11.0",
+    "@emotion/styled": "^11.11.0",
+    "@material/web": "^1.2.0",
+    "@mui/material": "^5.13.3",
+    "@mui/x-date-pickers": "^6.6.0",
+    "date-fns": "^2.30.0",
+    "dayjs": "^1.11.8",
+    "dexie": "^4.0.1-alpha.19",
+    "dexie-react-hooks": "^1.1.6",
+    "leaflet": "^1.9.4",
+    "net": "^1.0.2",
+    "next": "13.4.4",
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "react-leaflet": "^4.2.1",
+    "tls": "^0.0.1"
+  }
+}
