@@ -1,5 +1,6 @@
 import{db} from '../db'
 import { useLiveQuery } from 'dexie-react-hooks';
+import {Button} from '@mui/material'
 
 export default function IndexedDB(){
 
@@ -24,13 +25,25 @@ export default function IndexedDB(){
     }
 
     function handleChange(event){
+        console.log("handlechnage")
         const document = event.target.files[0]
         fr.readAsText(document)
     }
 
+    function onClickCLearDexie(){
+        console.log("clearing locations...")
+        db.locations.clear().then(()=>{
+            console.log("location Table cleared")
+        })
+    }
+
     return(
         <>
-            <input type="file" onChange={handleChange}/>
+        <input
+          type="file"
+          onChange={handleChange}
+        />
+            <Button variant="contained" onClick={onClickCLearDexie}>clear Locations</Button>
         </>
     )
 }

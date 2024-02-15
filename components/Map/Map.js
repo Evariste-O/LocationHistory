@@ -1,20 +1,18 @@
 'use client'
 import 'leaflet/dist/leaflet.css'
-import { MapContainer, TileLayer, Circle, Tooltip, useMap} from 'react-leaflet'
+import { MapContainer, TileLayer, Circle, Tooltip, useMap, Polyline} from 'react-leaflet'
 import {db} from '../db'
 import { useState } from 'react'
 import IndexedDB from '../IndexDB/IndexDB'
-import { DatePicker,  LocalizationProvider, DateRangePicker } from '@mui/x-date-pickers'
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import de from 'date-fns/locale/de';
-import { calculateZoomAndCenter } from '@/app/utils/mapUtils'
+import {Button} from '@mui/material'
+import { DateRangePicker, Slider } from 'rsuite';
+import 'rsuite/dist/rsuite.min.css';
 
 
 function Map({}){
     const [locations, setLocations] = useState([])
     const [fetchedLocations, setFetchedLocations] = useState([])
-    const [center, setCenter] = useState([0,0])
-    const [zoom, setZoom] = useState(14)
+    const [bounds, setBounds] = useState([])
     const [currentDate, setCurrentDate] = useState("")
     const [accuracy, setAccuracy] = useState()
     const [searchDateStart, setSearchDateStart] = useState()
@@ -25,21 +23,21 @@ function Map({}){
         height:'100%'
     }
 
-    function ChangeView({ center, zoom }) {
+    function ChangeView({ bounds }) {
         const map = useMap();
-        map.setView(center, zoom);
-        //map.fi
+        if(bounds.length>0){
+            map.fitBounds(bounds)
+        }
         return null;
     }
 
     const onclickGetLocations = async () => {
         db.locations.where('timestamp').between(searchDateStart, searchDateEnd).toArray().then(locations => {
-            console.log(locations) 
+            console.log("fetched locations:") 
+            console.log(locations)
             setFetchedLocations(locations);
-            setZoom(14)
-            setCenter([locations[0].latitude/10000000, locations[0].longitude/10000000])
-            calculateZoomAndCenter(locations)
-            console.log("locations fetched")
+            setLocations(locations.filter(location => location.accuracy < 500))
+            setBounds(locations.map(location => [location.latitude/10000000, location.longitude/10000000]))
         })
     }
 
@@ -58,7 +56,6 @@ function Map({}){
             }
             if(locationsInThatMinute.length !== 0)
             {
-                setCenter([locationsInThatMinute[0].latitude / 10000000, locationsInThatMinute[0].longitude / 10000000]);
                 setAccuracy(locationsInThatMinute[0].accuracy);
                 setLocations(locationsInThatMinute);
             }
@@ -66,43 +63,47 @@ function Map({}){
         }
     }
 
-    const onclickshowOnMap = () =>{
-        setLocations(fetchedLocations.filter(location => location.accuracy < 500))
+    const onDateSelected = (value) => { 
+        if(value != null){
+            setSearchDateStart(Math.floor(new Date(value[0]).getTime()/1000))
+            setSearchDateEnd(Math.floor(new Date(value[1]).getTime()/1000))
+            console.log(searchDateStart)
+            console.log(searchDateEnd)
+        }
     }
 
-    const onAcceptStart = (value) =>{
-        setSearchDateStart(new Date(value).getTime()/1000)
-    }
-    const onAcceptEnd = (value) =>{
-        setSearchDateEnd(new Date(value).getTime()/1000)
+    const onSlidingbarChange = (value)=>{
+        setLocations(fetchedLocations.filter(location => location.timestamp<value))
     }
 
     return(
         <>
-        <div style={{width:300}}>
+        <div style={{width:500}}>
+            <DateRangePicker onChange={onDateSelected} showOneCalendar ranges={[]}/>
             <IndexedDB/>
-            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={de}>
-                <p>Start:</p>
-                <DatePicker onAccept={onAcceptStart}/>
-                <p>End:</p>
-                <DatePicker onAccept={onAcceptEnd}/>
-            </LocalizationProvider>
-            <button onClick={onclickGetLocations}>get Location Set</button>
-            <button onClick={onclickAnimation}>run Animation</button>
-            <button onClick={onclickshowOnMap}>show all points on map</button>
+            <Button variant='contained' onClick={onclickGetLocations}>get Location Set</Button>
+            <Button variant='contained' onClick={onclickAnimation}>run Animation</Button>
             <p>Number of locations fetched: {fetchedLocations.length}</p>
             <p>Date: {currentDate}</p>
             <p>Accuracy: {accuracy}</p>
+            <Slider
+                progress
+                defaultValue={0}
+                onChange={onSlidingbarChange}
+                min={searchDateStart}
+                max={searchDateEnd}
+            />
         </div>
-            <MapContainer style={style} center={[0,0]} zoom={16} scrollWheelZoom={true}>   
-                <ChangeView center={center} zoom={zoom}/>      
+            <MapContainer style={style} center={[0,0]} zoom={3} scrollWheelZoom={true}>   
+                <ChangeView bounds={bounds}/>      
                 <TileLayer
                 attribution= '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                {locations?.map((location)=>(
-                    <Circle key={location.id} center={[location.latitude/10000000,location.longitude/10000000]} pathOptions={{color: 'red'}} radius={3}/>
-                ))}
+                {/* {locations?.map((location)=>(
+                    <Circle key={location.id} center={[location.latitude/10000000,location.longitude/10000000]} pathOptions={{color: 'red'}} radius={15}/>
+                ))} */}
+                <Polyline positions={bounds}/>
             </MapContainer>
         </>
     );
