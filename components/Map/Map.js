@@ -6,11 +6,13 @@ import { useState } from 'react'
 import IndexedDB from '../IndexDB/IndexDB'
 import {Button} from '@mui/material'
 import { DateRangePicker, Slider } from 'rsuite';
+import Locations from './Locations'
 import 'rsuite/dist/rsuite.min.css';
 
 
 function Map({}){
     const [locations, setLocations] = useState([])
+    const [locations2, setLocations2] = useState([])
     const [fetchedLocations, setFetchedLocations] = useState([])
     const [bounds, setBounds] = useState([])
     const [currentDate, setCurrentDate] = useState("")
@@ -37,6 +39,13 @@ function Map({}){
             console.log(locations)
             setFetchedLocations(locations);
             setLocations(locations.filter(location => location.accuracy < 500))
+            setBounds(locations.map(location => [location.latitude/10000000, location.longitude/10000000]))
+        })
+        db.locations2.where('timestamp').between(searchDateStart, searchDateEnd).toArray().then(locations => {
+            console.log("fetched locations:") 
+            console.log(locations)
+            setFetchedLocations(locations);
+            setLocations2(locations.filter(location => location.accuracy < 500))
             setBounds(locations.map(location => [location.latitude/10000000, location.longitude/10000000]))
         })
     }
@@ -100,10 +109,8 @@ function Map({}){
                 attribution= '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                {/* {locations?.map((location)=>(
-                    <Circle key={location.id} center={[location.latitude/10000000,location.longitude/10000000]} pathOptions={{color: 'red'}} radius={15}/>
-                ))} */}
-                <Polyline positions={bounds}/>
+                <Locations locations={locations} color={'red'}/>
+                <Locations locations={locations2} color={'blue'}/>
             </MapContainer>
         </>
     );
