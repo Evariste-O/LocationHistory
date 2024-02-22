@@ -2,7 +2,12 @@ body {
   margin: 0;
   height: 100vh;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
+}
+
+.menu{
+  background-color: blue;
+  z-index: 1000;
 }
 
 .mapContainer{

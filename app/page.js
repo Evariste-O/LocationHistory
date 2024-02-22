@@ -1,4 +1,5 @@
 'use client'
+import Sidebar from '@/components/Sidebar/Sidebar';
 import dynamic from 'next/dynamic';
 
 
@@ -11,7 +12,8 @@ export default function Home() {
 
 
   return (
-    <>   
+    <> 
+      <Sidebar style={{zIndex:1000}}/> 
       <Map/>  
     </>
   )

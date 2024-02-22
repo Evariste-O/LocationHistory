@@ -2,12 +2,10 @@
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Circle, Tooltip, useMap, Polyline} from 'react-leaflet'
 import {db} from '../db'
-import { useState } from 'react'
-import IndexedDB from '../IndexDB/IndexDB'
-import {Button} from '@mui/material'
-import { DateRangePicker, Slider } from 'rsuite';
-import Locations from './Locations'
-import 'rsuite/dist/rsuite.min.css';
+import { useState, useEffect, useRef } from 'react'
+import pubSub from '../PubSub'
+import "leaflet.heat";
+import { Slider } from 'rsuite'
 
 
 function Map({}){
@@ -16,37 +14,45 @@ function Map({}){
     const [fetchedLocations, setFetchedLocations] = useState([])
     const [bounds, setBounds] = useState([])
     const [currentDate, setCurrentDate] = useState("")
-    const [accuracy, setAccuracy] = useState()
     const [searchDateStart, setSearchDateStart] = useState()
     const [searchDateEnd, setSearchDateEnd] = useState()
+    
+    
+    
+    useEffect(() => {
+        const subscription = pubSub.subscribe('dateSelected', (selectedDate) => {
+            if(selectedDate != null){
+                setSearchDateStart(Math.floor(new Date(selectedDate[0]).getTime()/1000))
+                setSearchDateEnd(Math.floor(new Date(selectedDate[1]).getTime()/1000))
+                fetchLocations(Math.floor(new Date(selectedDate[0]).getTime()/1000) , Math.floor(new Date(selectedDate[1]).getTime()/1000))
+            }
+        });
+        
+        return () => {
+          pubSub.unsubscribe(subscription);
+        };
+      }, []);
+    
 
-    const style = {
-        width: '100%',
-        height:'100%'
-    }
 
-    function ChangeView({ bounds }) {
+    function ChangeView({ bounds }) {       
         const map = useMap();
-        if(bounds.length>0){
-            map.fitBounds(bounds)
-        }
-        return null;
+        const[heatLayer, setHeatlayer] = useState(L.heatLayer(bounds))
+        map.eachLayer(layer =>{
+            if(layer._heat){
+                console.log(layer)
+                map.removeLayer(layer)
+            }
+        })
+        map.addLayer(heatLayer)
     }
 
-    const onclickGetLocations = async () => {
-        db.locations.where('timestamp').between(searchDateStart, searchDateEnd).toArray().then(locations => {
-            console.log("fetched locations:") 
+    const fetchLocations = async (start, end) => {
+        db.locations.where('timestamp').between(start, end).toArray().then(locations => {
             console.log(locations)
             setFetchedLocations(locations);
-            setLocations(locations.filter(location => location.accuracy < 500))
-            setBounds(locations.map(location => [location.latitude/10000000, location.longitude/10000000]))
-        })
-        db.locations2.where('timestamp').between(searchDateStart, searchDateEnd).toArray().then(locations => {
-            console.log("fetched locations:") 
-            console.log(locations)
-            setFetchedLocations(locations);
-            setLocations2(locations.filter(location => location.accuracy < 500))
-            setBounds(locations.map(location => [location.latitude/10000000, location.longitude/10000000]))
+            setLocations(locations.filter(location => location.accuracy < 500 && !isNaN(location.latitude) && !isNaN(location.longitude)))
+            setBounds(locations.filter(location => location.accuracy < 500 && !isNaN(location.latitude) && !isNaN(location.longitude)).map(location => [location.latitude/10000000, location.longitude/10000000]))
         })
     }
 
@@ -72,47 +78,23 @@ function Map({}){
         }
     }
 
-    const onDateSelected = (value) => { 
-        if(value != null){
-            setSearchDateStart(Math.floor(new Date(value[0]).getTime()/1000))
-            setSearchDateEnd(Math.floor(new Date(value[1]).getTime()/1000))
-            console.log(searchDateStart)
-            console.log(searchDateEnd)
-        }
-    }
-
     const onSlidingbarChange = (value)=>{
-        setLocations(fetchedLocations.filter(location => location.timestamp<value))
+        setLocations(fetchedLocations.filter(location => location.timestamp<value && location.timestamp>value-1000))
+        setCurrentDate(new Date(value*1000).toString())
     }
 
-    return(
+    return( 
         <>
-        <div style={{width:500}}>
-            <DateRangePicker onChange={onDateSelected} showOneCalendar ranges={[]}/>
-            <IndexedDB/>
-            <Button variant='contained' onClick={onclickGetLocations}>get Location Set</Button>
-            <Button variant='contained' onClick={onclickAnimation}>run Animation</Button>
-            <p>Number of locations fetched: {fetchedLocations.length}</p>
-            <p>Date: {currentDate}</p>
-            <p>Accuracy: {accuracy}</p>
-            <Slider
-                progress
-                defaultValue={0}
-                onChange={onSlidingbarChange}
-                min={searchDateStart}
-                max={searchDateEnd}
-            />
-        </div>
-            <MapContainer style={style} center={[0,0]} zoom={3} scrollWheelZoom={true}>   
-                <ChangeView bounds={bounds}/>      
+            <MapContainer style={{width:'100%', height:'100%', zIndex:1}} center={[0,0]} zoom={3} scrollWheelZoom={true} zoomControl={false}>
+                <p style={{position:'absolute', zIndex:1000, top:0, left:'auto', backgroundColor:'black'}}>{currentDate}</p>   
+                <ChangeView style={{zIndex:1000, height:500, width:500}} bounds={bounds} data={[[0,0]]} remove={true}/>  
+
                 <TileLayer
                 attribution= '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
-                <Locations locations={locations} color={'red'}/>
-                <Locations locations={locations2} color={'blue'}/>
-            </MapContainer>
-        </>
+            </MapContainer>     
+        </>    
     );
 }
 

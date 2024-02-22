@@ -18,11 +18,14 @@
     "dexie": "^4.0.1-alpha.19",
     "dexie-react-hooks": "^1.1.6",
     "leaflet": "^1.9.4",
+    "leaflet.heat": "^0.2.0",
     "net": "^1.0.2",
     "next": "13.4.4",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-leaflet": "^4.2.1",
+    "react-leaflet-heatmap-layer": "^2.0.0",
+    "react-leaflet-heatmap-layer-v3": "^3.0.3-beta-1",
     "rsuite": "^5.53.2",
     "tls": "^0.0.1"
   }
