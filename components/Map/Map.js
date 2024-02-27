@@ -2,49 +2,58 @@
 import 'leaflet/dist/leaflet.css'
 import { MapContainer, TileLayer, Circle, Tooltip, useMap, Polyline} from 'react-leaflet'
 import {db} from '../db'
+import Locations from './Locations';
 import { useState, useEffect, useRef } from 'react'
 import pubSub from '../PubSub'
-import "leaflet.heat";
 import { Slider } from 'rsuite'
+import "leaflet.heat";
 
 
 function Map({}){
     const [locations, setLocations] = useState([])
-    const [locations2, setLocations2] = useState([])
     const [fetchedLocations, setFetchedLocations] = useState([])
     const [bounds, setBounds] = useState([])
     const [currentDate, setCurrentDate] = useState("")
     const [searchDateStart, setSearchDateStart] = useState()
+    const [displayType, setDisplayType] = useState('heatmap')
     const [searchDateEnd, setSearchDateEnd] = useState()
     
     
     
     useEffect(() => {
-        const subscription = pubSub.subscribe('dateSelected', (selectedDate) => {
+        const DateSub = pubSub.subscribe('dateSelected', (selectedDate) => {
             if(selectedDate != null){
                 setSearchDateStart(Math.floor(new Date(selectedDate[0]).getTime()/1000))
                 setSearchDateEnd(Math.floor(new Date(selectedDate[1]).getTime()/1000))
                 fetchLocations(Math.floor(new Date(selectedDate[0]).getTime()/1000) , Math.floor(new Date(selectedDate[1]).getTime()/1000))
             }
         });
+        const DisplaySub = pubSub.subscribe('displayType', (value)=>{
+            setDisplayType(value)
+        })
         
         return () => {
-          pubSub.unsubscribe(subscription);
+          pubSub.unsubscribe(DateSub);
+          pubSub.unsubscribe(DisplaySub);
         };
       }, []);
     
 
 
-    function ChangeView({ bounds }) {       
+    function ChangeView({ bounds, displayType }) {       
         const map = useMap();
-        const[heatLayer, setHeatlayer] = useState(L.heatLayer(bounds))
+        if(bounds.length > 0 ){
+            map.fitBounds(bounds)
+        }
         map.eachLayer(layer =>{
             if(layer._heat){
-                console.log(layer)
                 map.removeLayer(layer)
             }
         })
-        map.addLayer(heatLayer)
+        if(displayType === 'heatmap')
+        {
+            map.addLayer(L.heatLayer(bounds))
+        }
     }
 
     const fetchLocations = async (start, end) => {
@@ -87,12 +96,14 @@ function Map({}){
         <>
             <MapContainer style={{width:'100%', height:'100%', zIndex:1}} center={[0,0]} zoom={3} scrollWheelZoom={true} zoomControl={false}>
                 <p style={{position:'absolute', zIndex:1000, top:0, left:'auto', backgroundColor:'black'}}>{currentDate}</p>   
-                <ChangeView style={{zIndex:1000, height:500, width:500}} bounds={bounds} data={[[0,0]]} remove={true}/>  
-
+                <ChangeView style={{zIndex:1000, height:500, width:500}} bounds={bounds} displayType={displayType}/>  
                 <TileLayer
                 attribution= '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 />
+                {displayType === 'points' &&
+                    <Locations locations={locations} color={'red'} />
+                }
             </MapContainer>     
         </>    
     );
